@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>SOLPLAY FARM 2.0 — Play • Plant • Profit</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    
+    :root {
+      --neon-green: #22ff88;
+      --gold: #ffd966;
+    }
+    
+    * {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    
+    .press-start {
+      font-family: 'Press Start 2P', cursive;
+    }
+    
+    .neon-text {
+      text-shadow: 0 0 8px var(--neon-green), 0 0 20px var(--neon-green);
+    }
+    
+    .hero-bg {
+      background: radial-gradient(circle at 20% 40%, #0a2f1f, #000000);
+      animation: slowDrift 20s ease infinite;
+    }
+    
+    @keyframes slowDrift {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
+    }
+    
+    .farm-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+    
+    .plant-slot {
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    
+    .plant-slot:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 20px rgba(34, 255, 136, 0.4);
+    }
+    
+    .harvest-pop {
+      animation: harvestPop 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+    
+    @keyframes harvestPop {
+      0% { transform: scale(0.8); opacity: 0; }
+      80% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .coin-fall {
+      position: fixed;
+      font-size: 2rem;
+      pointer-events: none;
+      z-index: 2000;
+      animation: fall 2s linear forwards;
+    }
+    
+    @keyframes fall {
+      0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(90vh) rotate(720deg); opacity: 0; }
+    }
+    
+    .modal-pop {
+      animation: modalPop 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+    
+    @keyframes modalPop {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    
+    .progress-bar {
+      transition: width 0.3s linear;
+    }
+    
+    .glow-on-hover:hover {
+      box-shadow: 0 0 15px var(--neon-green);
+    }
+  </style>
+</head>
+<body class="bg-black text-white overflow-x-hidden">
+
+  <!-- LOADING SCREEN -->
+  <div id="loading-screen" class="fixed inset-0 bg-black z-[9999] flex flex-col items-center justify-center">
+    <div class="text-8xl mb-6 animate-bounce">🌱</div>
+    <h1 class="text-5xl font-bold neon-text press-start">SOLPLAY FARM 2.0</h1>
+    <p class="text-green-400 text-xl mt-4">Loading your digital farm...</p>
+    <div class="mt-10 w-80 h-3 bg-zinc-800 rounded-full overflow-hidden">
+      <div id="loading-bar" class="h-full w-0 bg-gradient-to-r from-green-400 to-emerald-400 transition-all duration-200"></div>
+    </div>
+    <p class="text-xs text-green-400/70 mt-6">Powered by Solana • $SOLPLAY</p>
+  </div>
+
+  <!-- NAVBAR -->
+  <nav class="fixed top-0 w-full bg-black/80 backdrop-blur-lg border-b border-green-500/40 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3">
+      <div class="flex items-center gap-2">
+        <span class="text-3xl drop-shadow-lg">🌾</span>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tighter neon-text">$SOLPLAY FARM</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="wallet-status" class="hidden md:block text-sm bg-zinc-800 px-4 py-2 rounded-full">⚡ Not connected</div>
+        <button id="connect-wallet-btn" onclick="connectWallet()" class="flex items-center gap-2 bg-green-500 hover:bg-green-600 px-5 py-2 rounded-full font-bold transition-all active:scale-95 text-sm md:text-base">
+          <i class="fa-solid fa-wallet"></i> CONNECT
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="pt-20">
+
+    <!-- HERO -->
+    <div class="hero-bg max-w-7xl mx-auto px-6 py-20 text-center relative overflow-hidden rounded-3xl my-4">
+      <div class="absolute inset-0 bg-[radial-gradient(#22ff88_1px,transparent_1px)] bg-[length:40px_40px] opacity-10"></div>
+      <h1 class="text-5xl md:text-7xl font-bold neon-text leading-tight">PLAY • PLANT • PROFIT</h1>
+      <p class="text-xl md:text-2xl text-green-300 max-w-2xl mx-auto mt-4">Buy seeds, grow crops, earn $SOLPLAY & level up — deflationary farming on Solana</p>
+      <div class="flex flex-wrap justify-center gap-5 mt-10">
+        <button onclick="document.getElementById('game-details').scrollIntoView({behavior:'smooth'})" class="bg-white text-black px-8 py-3 rounded-full text-xl font-bold flex items-center gap-2 hover:scale-105 transition-all">
+          <i class="fa-solid fa-seedling"></i> GAME DETAILS
+        </button>
+        <button onclick="startGameDemo()" class="border-2 border-green-400 px-8 py-3 rounded-full text-xl font-bold flex items-center gap-2 hover:bg-green-400/10 transition-all">
+          <i class="fa-solid fa-gamepad"></i> PLAY DEMO
+        </button>
+      </div>
+      <div class="mt-6 text-green-400 text-sm flex items-center justify-center gap-4">
+        <span><i class="fa-solid fa-fire"></i> Fair launch</span>
+        <span><i class="fa-solid fa-chart-line"></i> 60% burn on seed buys</span>
+        <span><i class="fa-solid fa-trophy"></i> Leaderboard rewards</span>
+      </div>
+    </div>
+
+    <!-- FULL GAME DETAILS -->
+    <div id="game-details" class="max-w-7xl mx-auto px-6 py-16 bg-black/50 rounded-3xl my-8 backdrop-blur-sm">
+      <h2 class="text-4xl font-bold text-center mb-12 neon-text">📜 FULL GAME MECHANICS</h2>
+      <div class="grid md:grid-cols-2 gap-12">
+        <div>
+          <h3 class="text-2xl font-bold mb-6">🌀 Core Loop</h3>
+          <div class="space-y-6">
+            <div class="flex gap-4"><div class="text-3xl w-12">1️⃣</div><div><span class="font-bold">Buy Seeds</span><p class="text-gray-300 text-sm">Common (250 $SOLPLAY), Rare (1000), Epic (3500), Legendary (10000)</p></div></div>
+            <div class="flex gap-4"><div class="text-3xl w-12">2️⃣</div><div><span class="font-bold">Plant in 5x5 Farm</span><p class="text-gray-300 text-sm">25 plots — unlock more with level & holdings</p></div></div>
+            <div class="flex gap-4"><div class="text-3xl w-12">3️⃣</div><div><span class="font-bold">Water & Fertilize</span><p class="text-gray-300 text-sm">Boost growth speed by up to 60%</p></div></div>
+            <div class="flex gap-4"><div class="text-3xl w-12">4️⃣</div><div><span class="font-bold">Harvest → 1.5x–4x ROI</span><p class="text-gray-300 text-sm">+XP, leaderboard points, token rewards</p></div></div>
+          </div>
+        </div>
+        <div class="bg-zinc-900/60 rounded-3xl p-8">
+          <h3 class="text-2xl font-bold mb-6">💎 Tokenomics (Deflationary)</h3>
+          <ul class="space-y-3 text-base">
+            <li class="flex justify-between"><span>60% of seed cost</span><span class="text-green-400 font-bold">🔥 BURNED</span></li>
+            <li class="flex justify-between"><span>30% to reward pool</span><span class="text-green-400 font-bold">🌊 Harvest & staking</span></li>
+            <li class="flex justify-between"><span>10% dev & marketing</span><span class="text-green-400">→ future games</span></li>
+            <li class="flex justify-between"><span>Hold $SOLPLAY</span><span class="text-yellow-300">Free seeds + multipliers</span></li>
+          </ul>
+          <div class="mt-6 pt-4 border-t border-white/10">
+            <div class="text-sm text-gray-400">Total burned so far (demo): <span id="burn-counter" class="text-green-400 font-mono">0</span> $SOLPLAY</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOW TO PLAY (with previews) -->
+    <div class="max-w-7xl mx-auto px-6 py-12">
+      <h2 class="text-4xl font-bold text-center mb-12 neon-text">🌱 HOW TO PLAY</h2>
+      <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="bg-zinc-900/70 rounded-2xl p-5 text-center"><div class="text-5xl mb-3">🔌</div><h3 class="font-bold text-xl">1. Connect Wallet</h3><p class="text-gray-400 text-sm">Phantom / Solflare</p></div>
+        <div class="bg-zinc-900/70 rounded-2xl p-5 text-center cursor-pointer" onclick="openShop()"><div class="text-5xl mb-3">🛒</div><h3 class="font-bold text-xl">2. Buy Seeds</h3><p class="text-gray-400 text-sm">Click any seed in shop</p></div>
+        <div class="bg-zinc-900/70 rounded-2xl p-5 text-center"><div class="text-5xl mb-3">🌾</div><h3 class="font-bold text-xl">3. Plant & Grow</h3><p class="text-gray-400 text-sm">Tap empty plot → choose seed</p></div>
+        <div class="bg-zinc-900/70 rounded-2xl p-5 text-center"><div class="text-5xl mb-3">💰</div><h3 class="font-bold text-xl">4. Harvest Rewards</h3><p class="text-gray-400 text-sm">Collect $SOLPLAY & XP</p></div>
+      </div>
+    </div>
+
+    <!-- INTERACTIVE GAME DEMO (UPGRADED) -->
+    <div id="demo-section" class="max-w-7xl mx-auto px-6 py-10 hidden">
+      <div class="bg-zinc-900/80 rounded-3xl p-6 backdrop-blur-sm border border-green-500/30">
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+          <div>
+            <h2 class="text-3xl font-bold">🌾 Your Farm (5x5)</h2>
+            <div class="text-sm text-gray-400">Level <span id="player-level">1</span> • XP: <span id="player-xp">0</span>/100</div>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-bold text-green-400" id="live-balance">12,500 $SOLPLAY</div>
+            <div class="text-xs text-gray-400">+ <span id="daily-bonus">0</span> today (claim)</div>
+          </div>
+        </div>
+
+        <!-- 5x5 Farm Grid -->
+        <div id="live-farm-grid" class="farm-grid mb-8"></div>
+
+        <!-- Shop & Boosts -->
+        <div class="grid md:grid-cols-2 gap-6 mt-6">
+          <div>
+            <h3 class="text-xl font-bold mb-3">🌿 Seed Shop</h3>
+            <div class="grid grid-cols-2 gap-3">
+              <button onclick="showBuyModal(0)" class="bg-zinc-800 p-3 rounded-2xl text-center hover:bg-green-900 transition"><div class="text-4xl">🌱</div><div>Common</div><div class="text-sm text-green-400">250</div></button>
+              <button onclick="showBuyModal(1)" class="bg-zinc-800 p-3 rounded-2xl text-center hover:bg-green-900 transition"><div class="text-4xl">🌿</div><div>Rare</div><div class="text-sm text-green-400">1,000</div></button>
+              <button onclick="showBuyModal(2)" class="bg-zinc-800 p-3 rounded-2xl text-center hover:bg-green-900 transition"><div class="text-4xl">🌳</div><div>Epic</div><div class="text-sm text-green-400">3,500</div></button>
+              <button onclick="showBuyModal(3)" class="bg-zinc-800 p-3 rounded-2xl text-center hover:bg-green-900 transition border border-yellow-500"><div class="text-4xl">👑</div><div>Legendary</div><div class="text-sm text-green-400">10,000</div></button>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-xl font-bold mb-3">⚡ Boosters (active 2h)</h3>
+            <div class="flex gap-3 flex-wrap">
+              <button onclick="applyBoost('water')" class="bg-blue-800 px-4 py-2 rounded-full text-sm"><i class="fa-solid fa-droplet"></i> Water (20% faster)</button>
+              <button onclick="applyBoost('fertilizer')" class="bg-purple-800 px-4 py-2 rounded-full text-sm"><i class="fa-solid fa-flask"></i> Fertilizer (+40%)</button>
+            </div>
+            <div class="mt-4 text-xs text-gray-400">Active boost: <span id="active-boost">None</span></div>
+          </div>
+        </div>
+        
+        <!-- Leaderboard Preview -->
+        <div class="mt-8 pt-4 border-t border-white/10">
+          <h3 class="font-bold mb-2">🏆 Top Farmers (demo)</h3>
+          <div class="flex justify-between text-sm text-gray-400">
+            <span>1. FarmerJoe — 45,230 pts</span>
+            <span>2. CryptoPlant — 38,100 pts</span>
+            <span>3. You — <span id="player-points">0</span> pts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUY MODAL -->
+  <div id="buy-modal" class="hidden fixed inset-0 bg-black/80 z-[999] flex items-center justify-center" onclick="if(event.target===this) closeBuyModal()">
+    <div class="bg-zinc-900 rounded-3xl p-6 max-w-sm w-full mx-4 modal-pop">
+      <h3 class="text-2xl font-bold mb-4">Buy Seed</h3>
+      <div id="modal-seed-info" class="text-center py-4"></div>
+      <div class="flex gap-4 mt-6">
+        <button onclick="closeBuyModal()" class="flex-1 py-3 rounded-full border border-gray-500">Cancel</button>
+        <button onclick="confirmBuySeed()" class="flex-1 py-3 rounded-full bg-green-500 text-black font-bold">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HARVEST OVERLAY -->
+  <div id="harvest-overlay" class="hidden fixed inset-0 bg-black/95 z-[1000] flex items-center justify-center">
+    <div class="text-center p-6">
+      <div id="harvest-emoji" class="text-8xl mb-4"></div>
+      <h2 id="harvest-title" class="text-4xl font-bold text-yellow-400">HARVEST!</h2>
+      <p id="harvest-reward" class="text-5xl font-bold text-green-400 my-4"></p>
+      <button onclick="closeHarvestOverlay()" class="mt-6 px-8 py-3 bg-green-400 text-black rounded-full font-bold text-xl">CONTINUE</button>
+    </div>
+  </div>
+
+  <script>
+    // ---------- GAME STATE ----------
+    let balance = 12500;
+    let totalBurned = 0;
+    let playerLevel = 1;
+    let playerXP = 0;
+    let playerPoints = 0;
+    let activeBoost = null;   // 'water' or 'fertilizer'
+    let boostEndTime = 0;
+    
+    // 5x5 = 25 plots
+    let plants = Array(25).fill(null);
+    
+    const seedTypes = [
+      { name: "Common", emoji: "🌱", cost: 250, reward: 380, timeHours: 3, xp: 10 },
+      { name: "Rare", emoji: "🌿", cost: 1000, reward: 1800, timeHours: 6, xp: 35 },
+      { name: "Epic", emoji: "🌳", cost: 3500, reward: 7500, timeHours: 10, xp: 100 },
+      { name: "Legendary", emoji: "👑", cost: 10000, reward: 25000, timeHours: 16, xp: 300 }
+    ];
+    
+    let selectedSeedIndex = null;
+    
+    // Load save
+    function loadGame() {
+      const saved = localStorage.getItem('solplay_farm');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          balance = data.balance ?? 12500;
+          totalBurned = data.totalBurned ?? 0;
+          playerLevel = data.playerLevel ?? 1;
+          playerXP = data.playerXP ?? 0;
+          playerPoints = data.playerPoints ?? 0;
+          plants = data.plants ? data.plants.map(p => p ? { ...p, time: p.time } : null) : Array(25).fill(null);
+          if (data.activeBoost) {
+            activeBoost = data.activeBoost;
+            boostEndTime = data.boostEndTime;
+            if (Date.now() > boostEndTime) activeBoost = null;
+          }
+        } catch(e) {}
+      }
+      updateUI();
+    }
+    
+    function saveGame() {
+      const data = {
+        balance, totalBurned, playerLevel, playerXP, playerPoints, plants,
+        activeBoost, boostEndTime
+      };
+      localStorage.setItem('solplay_farm', JSON.stringify(data));
+    }
+    
+    function updateUI() {
+      document.getElementById('live-balance')?.setAttribute('data-balance', balance);
+      if (document.getElementById('live-balance')) document.getElementById('live-balance').innerText = `${Math.floor(balance).toLocaleString()} $SOLPLAY`;
+      document.getElementById('player-level').innerText = playerLevel;
+      document.getElementById('player-xp').innerText = playerXP;
+      document.getElementById('player-points').innerText = playerPoints;
+      document.getElementById('burn-counter').innerText = totalBurned;
+      const needed = playerLevel * 100;
+      document.getElementById('player-xp')?.parentElement?.setAttribute('data-max', needed);
+      if (activeBoost && Date.now() < boostEndTime) {
+        let boostName = activeBoost === 'water' ? '💧 Water (+20%)' : '🧪 Fertilizer (+40%)';
+        document.getElementById('active-boost').innerText = boostName;
+      } else {
+        activeBoost = null;
+        document.getElementById('active-boost').innerText = 'None';
+      }
+      renderFarm();
+      saveGame();
+    }
+    
+    function renderFarm() {
+      const grid = document.getElementById('live-farm-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      for (let i = 0; i < plants.length; i++) {
+        const plant = plants[i];
+        const slot = document.createElement('div');
+        slot.className = `plant-slot aspect-square rounded-2xl flex flex-col items-center justify-center text-5xl border-2 ${plant ? 'border-green-400 bg-gradient-to-br from-emerald-900/70 to-green-900/50' : 'border-dashed border-green-400/30 bg-zinc-800/50'}`;
+        if (plant) {
+          let progress = 0;
+          if (plant.time && plant.timeHours) {
+            let duration = plant.timeHours * 3600000;
+            if (activeBoost && Date.now() < boostEndTime) {
+              let mult = activeBoost === 'water' ? 0.8 : 0.6;
+              duration *= mult;
+            }
+            const elapsed = Date.now() - plant.time;
+            progress = Math.min((elapsed / duration) * 100, 100);
+          }
+          if (progress >= 100) {
+            slot.innerHTML = `<div>${plant.emoji}</div><button onclick="harvestPlant(${i})" class="mt-1 text-[10px] px-3 py-1 bg-yellow-400 text-black rounded-full font-bold">HARVEST</button>`;
+          } else {
+            slot.innerHTML = `<div>${plant.emoji}</div><div class="text-[10px] mt-1">${Math.floor(progress)}%</div>`;
+          }
+        } else {
+          slot.innerHTML = `<span class="text-3xl opacity-40">+</span>`;
+          slot.onclick = () => openPlantDialog(i);
+        }
+        grid.appendChild(slot);
+      }
+    }
+    
+    function openPlantDialog(index) {
+      if (plants[index]) return;
+      // Show a quick selector
+      const types = seedTypes.map((s, idx) => `${s.emoji} ${s.name} (${s.cost})`).join('\n');
+      const choice = prompt(`Select seed to plant:\n${types}\n\nEnter number: 0-3`);
+      if (choice !== null && !isNaN(choice) && choice >=0 && choice < seedTypes.length) {
+        const seed = seedTypes[choice];
+        if (balance >= seed.cost) {
+          balance -= seed.cost;
+          totalBurned += Math.floor(seed.cost * 0.6);
+          plants[index] = {
+            ...seed,
+            time: Date.now(),
+            timeHours: seed.timeHours
+          };
+          updateUI();
+        } else {
+          alert("Not enough $SOLPLAY!");
+        }
+      }
+    }
+    
+    function harvestPlant(index) {
+      const plant = plants[index];
+      if (!plant) return;
+      let reward = plant.reward;
+      if (activeBoost && Date.now() < boostEndTime && activeBoost === 'fertilizer') reward = Math.floor(reward * 1.2);
+      
+      balance += reward;
+      playerXP += plant.xp;
+      playerPoints += Math.floor(reward / 100);
+      
+      // Level up
+      let needed = playerLevel * 100;
+      while (playerXP >= needed) {
+        playerLevel++;
+        playerXP -= needed;
+        needed = playerLevel * 100;
+        balance += 5000; // level up bonus
+      }
+      
+      // Harvest animation
+      const overlay = document.getElementById('harvest-overlay');
+      document.getElementById('harvest-emoji').innerHTML = plant.emoji;
+      document.getElementById('harvest-reward').innerHTML = `+${reward} $SOLPLAY<br><span class="text-sm">+${plant.xp} XP</span>`;
+      overlay.classList.remove('hidden');
+      
+      // coin rain
+      for (let i=0;i<20;i++) {
+        setTimeout(() => {
+          const coin = document.createElement('div');
+          coin.className = 'coin-fall';
+          coin.innerHTML = '💰';
+          coin.style.left = Math.random() * 100 + '%';
+          document.body.appendChild(coin);
+          setTimeout(() => coin.remove(), 2000);
+        }, i * 50);
+      }
+      
+      plants[index] = null;
+      updateUI();
+    }
+    
+    function showBuyModal(index) {
+      selectedSeedIndex = index;
+      const seed = seedTypes[index];
+      const modalDiv = document.getElementById('buy-modal');
+      document.getElementById('modal-seed-info').innerHTML = `
+        <div class="text-7xl">${seed.emoji}</div>
+        <div class="text-2xl font-bold">${seed.name} Seed</div>
+        <div class="text-green-400 text-3xl my-2">${seed.cost} $SOLPLAY</div>
+        <div class="text-sm">Grows in ${seed.timeHours}h • ~${seed.reward} reward</div>
+      `;
+      modalDiv.classList.remove('hidden');
+    }
+    
+    function confirmBuySeed() {
+      if (selectedSeedIndex === null) return;
+      const seed = seedTypes[selectedSeedIndex];
+      if (balance >= seed.cost) {
+        balance -= seed.cost;
+        totalBurned += Math.floor(seed.cost * 0.6);
+        // add to inventory? For simplicity, auto-add to first empty plot
+        const emptyIndex = plants.findIndex(p => !p);
+        if (emptyIndex !== -1) {
+          plants[emptyIndex] = {
+            ...seed,
+            time: Date.now(),
+            timeHours: seed.timeHours
+          };
+        } else {
+          alert("No empty plots! Harvest something first.");
+          balance += seed.cost; // refund
+        }
+        updateUI();
+      } else {
+        alert("Insufficient funds!");
+      }
+      closeBuyModal();
+    }
+    
+    function closeBuyModal() {
+      document.getElementById('buy-modal').classList.add('hidden');
+      selectedSeedIndex = null;
+    }
+    
+    function closeHarvestOverlay() {
+      document.getElementById('harvest-overlay').classList.add('hidden');
+    }
+    
+    function applyBoost(type) {
+      if (activeBoost && Date.now() < boostEndTime) {
+        alert("You already have an active boost!");
+        return;
+      }
+      let cost = type === 'water' ? 500 : 1500;
+      if (balance >= cost) {
+        balance -= cost;
+        activeBoost = type;
+        boostEndTime = Date.now() + 2 * 3600000;
+        updateUI();
+        alert(`${type === 'water' ? '💧 Watering' : '🧪 Fertilizer'} applied for 2 hours!`);
+      } else {
+        alert(`Not enough $SOLPLAY (need ${cost})`);
+      }
+    }
+    
+    function connectWallet() {
+      alert("✅ Phantom connected (demo mode)\nBalance loaded from save.");
+      loadGame();
+      document.getElementById('wallet-status').innerHTML = '🟢 Connected: Demo';
+      if (!document.getElementById('demo-section').classList.contains('hidden')) renderFarm();
+    }
+    
+    function startGameDemo() {
+      const demo = document.getElementById('demo-section');
+      demo.classList.remove('hidden');
+      demo.scrollIntoView({ behavior: 'smooth' });
+      loadGame();
+      renderFarm();
+    }
+    
+    function openShop() {
+      if (!document.getElementById('demo-section').classList.contains('hidden')) {
+        showBuyModal(0);
+      } else {
+        startGameDemo();
+        setTimeout(() => showBuyModal(0), 500);
+      }
+    }
+    
+    // Auto-refresh every 10 seconds
+    setInterval(() => {
+      if (document.getElementById('demo-section') && !document.getElementById('demo-section').classList.contains('hidden')) {
+        renderFarm();
+        saveGame();
+      }
+    }, 10000);
+    
+    // Loading simulation
+    window.onload = () => {
+      let w = 0;
+      const bar = document.getElementById('loading-bar');
+      const interval = setInterval(() => {
+        w += Math.random() * 20;
+        if (w >= 100) {
+          w = 100;
+          clearInterval(interval);
+          setTimeout(() => {
+            document.getElementById('loading-screen').style.opacity = '0';
+            setTimeout(() => document.getElementById('loading-screen').remove(), 600);
+            loadGame();
+          }, 400);
+        }
+        bar.style.width = w + '%';
+      }, 80);
+    };
+  </script>
+</body>
+</html>
